@@ -4,8 +4,8 @@
   <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
   <script type="text/javascript">
     var DIALOG_DIMENSIONS = {
-        width: 620,
-        height: 445
+        width: 800,
+        height: 600
     };
     var pickerApiLoaded = false;
 
@@ -26,12 +26,10 @@
             var docsView = new google.picker.DocsView()
                 .setIncludeFolders(true)
                 .setMimeTypes('application/vnd.google-apps.spreadsheet, application/vnd.google-apps.folder');
-                //.setSelectFolderEnabled(true);
 
             var picker = new google.picker.PickerBuilder()
                 .addView(docsView)
-                //.enableFeature(google.picker.Feature.NAV_HIDDEN)
-                //.hideTitleBar()
+                .hideTitleBar()
                 .setSize(DIALOG_DIMENSIONS.width - 2, DIALOG_DIMENSIONS.height - 2)
                 .setOAuthToken(token)
                 .setCallback(pickerCallback)
@@ -57,9 +55,11 @@
         if (action == google.picker.Action.PICKED) {
             var doc = data[google.picker.Response.DOCUMENTS][0];
             var id = doc[google.picker.Document.ID];
-            // Show the ID of the Google Drive folder
-            //document.getElementById('result').innerHTML = id;
+            
+            // send the file id back to my app script
             google.script.run.populateFromReport(id);
+            google.script.host.close();
+            
         } else if (action == google.picker.Action.CANCEL) {
             google.script.host.close();
         }

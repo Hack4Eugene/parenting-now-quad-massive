@@ -39,8 +39,8 @@ function selectReport() {
   
     // get file from dialog
     var html = HtmlService.createHtmlOutputFromFile('Picker.html')
-        .setWidth(640)
-        .setHeight(465)
+        .setWidth(840)
+        .setHeight(665)
         .setSandboxMode(HtmlService.SandboxMode.IFRAME);
     DocumentApp.getUi().showModalDialog(html, 'Select Spreadsheet');
 }
@@ -112,7 +112,7 @@ function populateFromReport(fileId) {
         reportIndex++;
     }
   }
-  
+  // Notes for later development after the challenge...
   // ui.alert(templateRow.getCell(0).editAsText().getText());  // this is the row number
   //table.appendTableRow(body.findText("<<ClFirst>> <<ClLast>>").getElement().getParent().getParent().getParent().asTableRow().copy());
 }
