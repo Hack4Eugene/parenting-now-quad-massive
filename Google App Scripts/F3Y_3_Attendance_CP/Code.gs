@@ -1,7 +1,7 @@
 /*
 * Author: Josiah Young - digitaldavinci1618
 * Created: 4-6-2018
-* Last Modified: 4-8-2018
+* Last Modified: 4-14-2018
 * Last Modified By: Josiah Young - digitaldavinci1618
 *
 * Summary: 
@@ -50,6 +50,12 @@ function getOAuthToken() {
     return ScriptApp.getOAuthToken();
 }
 
+function getAge(birthday) {
+  var birthday = new Date(birthday);
+  var now = new Date();
+  return Math.ceil(Math.abs(now.getTime() - birthday.getTime()) / (1000 * 3600 * 24 * 30));
+}
+
 function populateFromReport(fileId) {
   
   var ui = DocumentApp.getUi();
@@ -79,7 +85,6 @@ function populateFromReport(fileId) {
  
   // remove first array index because we skipped it since it was header data and its undefined (blank)
   reportValues.shift();
- 
   
   // now start working with the form that needs filling in
   var doc = DocumentApp.getActiveDocument();
@@ -91,28 +96,43 @@ function populateFromReport(fileId) {
       body.replaceText("<<fFacilitatorFullName>>", reportValues[0]["fFacilitatorFullName"]);
   }
   
-  var table = body.getTables()[0]; // first table in the document is the form we want to fill in 
-  var templateRowUpper = body.getTables()[0].getRow(3);  // this is the first tablerow that is for text entry (past the header tablerow)
+  var table = body.getTables()[0]; // first table in the document is the form we want to fill in
+
+  // add some rows if we are out of rows
+  var neededRows = reportValues.length - 16 < 0 ? 0 : reportValues.length - 16; 
+  var insertRow = 17; // specific to this document format
+  var insertRowNumber = 16;
+  var templateRow = table.getRow(2).copy(); // specific to this document format
+  var footerRow = table.getRow(17).removeFromParent().copy(); // specific to this document format
   
-  var reportIndex = 0;
-  // loop from tablerow "1" (actually tableRow(3) because of the table header) until cell 0 has an equals sign in it - "Ave parent attendance =".
-  // these are the tablerows that we want to fill in with data.
-  // these "rows" are actually made up of two tablerows each.
-  for (var i = 3; i < table.getNumRows(); i++) {
-    if (table.getRow(i).getCell(0).findText("=") || reportIndex >= reportValues.length) { // end of fillable rows in form or we are out of data to fill in
-        break;
-    } else if (table.getRow(i).getCell(0).findText("[0-9]+")) {
-        // upper table row - odd
-        table.getRow(i).getCell(1).setText( reportValues[reportIndex]["ClFirst"] + " " + reportValues[reportIndex]["ClLast"] );  // this is ClFirst and ClLast
-        table.getRow(i).getCell(3).setText( reportValues[reportIndex]["fAdultPhoneAreaCodeCel"] + "-" + reportValues[reportIndex]["fAdultPhoneCell"] );  // this is <<fAdultPhoneAreaCodeCel>>-<<fAdultPhoneCell>>
-        
-    } else {
-        // lower table row - even
-        table.getRow(i).getCell(1).setText( reportValues[reportIndex]["PFirst"] + " " + reportValues[reportIndex]["PLast"] );  // this is <<PFirst>> <<PLast>>
-        reportIndex++;
-    }
+  var style = {};
+  style[DocumentApp.Attribute.BOLD] = false;
+  
+  for (var newRow = 0; newRow <= neededRows; newRow++) {
+    templateRow.getCell(0).setText(insertRowNumber++).setAttributes(style);
+    table.insertTableRow(insertRow, templateRow.copy());   
+    insertRow++;
   }
-  // Notes for later development after the challenge...
-  // ui.alert(templateRow.getCell(0).editAsText().getText());  // this is the row number
-  //table.appendTableRow(body.findText("<<ClFirst>> <<ClLast>>").getElement().getParent().getParent().getParent().asTableRow().copy());
+ 
+  table.insertTableRow(insertRow, footerRow.copy());
+
+  
+  // loop from tablerow "1" (actually tableRow(3) because of the table header) until cell 0 has an equals sign in it - "Ave parent attendance =".
+  // these are the tablerows that we want to fill in with data.'
+  // these "rows" are actually made up of two tablerows each
+  var reportIndex = 0;
+  for (var i = 2; i < table.getNumRows(); i++) {
+    if (table.getRow(i).getCell(0).findText("=") || reportIndex >= reportValues.length) { 
+        // end of fillable rows in form or we are out of data to fill in
+        break;
+    }
+  
+    var fChiAge = getAge(reportValues[reportIndex]["fChiDOB"]); // calculate child age in months
+    
+    table.getRow(i).getCell(1).setText( reportValues[reportIndex]["fChiFirName"] );  // this is <<fChiFirName>>
+    table.getRow(i).getCell(2).setText( fChiAge ); 
+    table.getRow(i).getCell(3).setText( reportValues[reportIndex]["ClFirst"] + " " + reportValues[reportIndex]["ClLast"] + " & " + reportValues[reportIndex]["PFirst"] + " " + reportValues[reportIndex]["PLast"] );  // this is <<ClFirst>> and <<ClLast>> & <<PFirst>> <<PLast>>
+     
+    reportIndex++;
+  }
 }
