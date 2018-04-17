@@ -1,7 +1,7 @@
 /*
 * Author: Josiah Young - digitaldavinci1618
 * Created: 4-6-2018
-* Last Modified: 4-14-2018
+* Last Modified: 4-17-2018
 * Last Modified By: Josiah Young - digitaldavinci1618
 *
 * Summary: 
@@ -80,6 +80,8 @@ function populateFromReport(fileId) {
   // remove first array index because we skipped it since it was header data and its undefined (blank)
   reportValues.shift();
   
+  DocumentApp.getUi().alert(reportValues.length);
+  
   // now start working with the form that needs filling in
   var doc = DocumentApp.getActiveDocument();
   var body = doc.getBody();
@@ -93,48 +95,74 @@ function populateFromReport(fileId) {
   var table = body.getTables()[0]; // first table in the document is the form we want to fill in
 
   // add some rows if we are out of rows
-  var insertRow = 36;
-  var templateStartRow = 33; // start at end of table 
-  var templateEndRow = 36; // end of template row
+  var neededRows = reportValues.length - 12 < 0 ? 0 : reportValues.length - 12; 
+  var insertRow = 39; // specific to this document format
+  var insertRowNumber = 13; // row number label
   var templateRowUpperG = table.getRow(3).copy();  // Gray - this is the first tablerow that is for text entry (past the header tablerow)
   var templateRowMiddleG = table.getRow(4).copy(); // Gray - this is the lower tablerow that is for text entry 
   var templateRowLowerG = table.getRow(5).copy(); // Gray - this is the lower tablerow that is for text entry 
+  templateRowUpperG.getCell(1).setText( "" ); 
+  templateRowUpperG.getCell(3).setText( "" );
+  templateRowMiddleG.getCell(1).setText( "" );  // this is <<ClFirst>> and <<ClLast>> & <<PFirst>> <<PLast>>
+  templateRowLowerG.getCell(1).setText( "" );  // this is <<fChiFirName>>
+    
   var templateRowUpperW = table.getRow(6).copy();  // White - this is the first tablerow that is for text entry (past the header tablerow)
   var templateRowMiddleW = table.getRow(7).copy();  // White - this is the first tablerow that is for text entry (past the header tablerow)
-  var templateRowLowerW = table.getRow(8).copy(); // White - this is the lower tablerow that is for text entry 
+  var templateRowLowerW = table.getRow(8).copy(); // White - this is the lower tablerow that is for text entry
+  templateRowUpperW.getCell(1).setText( "" ); 
+  templateRowUpperW.getCell(3).setText( "" );
+  templateRowMiddleW.getCell(1).setText( "" );  // this is <<ClFirst>> and <<ClLast>> & <<PFirst>> <<PLast>>
+  templateRowLowerW.getCell(1).setText( "" );  // this is <<fChiFirName>
   
+  var style = {};
+  style[DocumentApp.Attribute.BOLD] = false;
+
   for (var newRow = 0; newRow <= neededRows; newRow += 6) {
   
     // Upper White TableRow
-    templateRowUpperW.getCell(0).setText(insertRowNumber++).setAttributes(style);
-    table.insertTableRow(insertRow, templateRowUpperW.copy());
+    templateRowUpperG.getCell(0).setText(insertRowNumber++).setAttributes(style);
+    table.insertTableRow(insertRow, templateRowUpperG.copy());
     // Middle White TableRow
-    table.insertTableRow(insertRow + 1, templateRowMiddleW.copy());
+    table.insertTableRow(insertRow + 1, templateRowMiddleG.copy())
     // Lower White TableRow
-    table.insertTableRow(insertRow + 2, templateRowLowerW.copy());
+    table.insertTableRow(insertRow + 2, templateRowLowerG.copy());
+    
     
     // Upper Gray TableRow
-    templateRowUpperG.getCell(0).setText(insertRowNumber++).setAttributes(style);
-    table.insertTableRow(insertRow + 3, templateRowUpperG.copy());
+    templateRowUpperW.getCell(0).setText(insertRowNumber++).setAttributes(style);
+    table.insertTableRow(insertRow + 3, templateRowUpperW.copy());
     // Middle Gray TableRow
-    table.insertTableRow(insertRow + 4, templateRowMiddleG.copy());
+    table.insertTableRow(insertRow + 4, templateRowMiddleW.copy());
     // Lower Gray TableRow
-    table.insertTableRow(insertRow + 5, templateRowLowerG.copy());
+    table.insertTableRow(insertRow + 5, templateRowLowerW.copy());
     
     insertRow += 6;
   }
   
-  // loop from tablerow "1" (actually tableRow(3) because of the table header) until cell 0 has an equals sign in it - "Ave parent attendance =".
+  // loop from tablerow "1" (actually tableRow(6) because of the table header) until cell 0 has an equals sign in it - "Ave parent attendance =".
   // these are the tablerows that we want to fill in with data.'
   // these "rows" are actually made up of two tablerows each
-  for (var i = 6; i < table.getNumRows(); i++) {
-    if (table.getRow(i).getCell(0).findText("=") || reportIndex >= reportValues.length) { 
-        // end of fillable rows in form or we are out of data to fill in
-        break;
-    }
+  var reportIndex = 0;
+  for (var i = 3; i < reportValues.length + 6; i += 3) {
+      if (reportIndex < reportValues.length) {
+        var fAdultPhoneCell = String(reportValues[reportIndex]["fAdultPhoneCell"]);
+      if (fAdultPhoneCell) {
+        if (fAdultPhoneCell.length == 7) {
+          fAdultPhoneCell = fAdultPhoneCell.substr(0,3) + "-\n" + fAdultPhoneCell.substr(3);
+        }
+        fAdultPhoneCell = reportValues[reportIndex]["fAdultPhoneAreaCodeCel"] + "-" + fAdultPhoneCell;
+      } else {
+        fAdultPhoneCell = "";
+      }
     
-    table.getRow(i).getCell(1).setText( reportValues[i]["fChiFirName"] );  // this is <<fChiFirName>>
-    table.getRow(i).getCell(2).setText( reportValues[i]["fChiDOB"] ); 
-    table.getRow(i).getCell(3).setText( reportValues[i]["ClFirst"] + " " + reportValues[i]["ClLast"] + " & " + reportValues[i]["PFirst"] + " " + reportValues[i]["PLast"] );  // this is <<ClFirst>> and <<ClLast>> & <<PFirst>> <<PLast>>
+      table.getRow(i).getCell(1).setText( reportValues[reportIndex]["ClFirst"] + " " + reportValues[reportIndex]["ClLast"] );
+      table.getRow(i).getCell(3).setText( fAdultPhoneCell );  // this is <<fAdultPhoneCell>>
+      table.getRow(i+1).getCell(1).setText( reportValues[reportIndex]["PFirst"] + " " + reportValues[reportIndex]["PLast"] );  // this is <<ClFirst>> and <<ClLast>> & <<PFirst>> <<PLast>>
+      table.getRow(i+2).getCell(1).setText( reportValues[reportIndex]["fChiFirName"] );  // this is <<fChiFirName>>
+   
+      reportIndex++;
+    } else {
+      break;
+    }
   }
 }
